@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phonics Decode · Encode</title>
+  <style>
+    :root {
+      --bg: #0d0f17;
+      --bg-soft: #151929;
+      --panel: rgba(20, 24, 38, 0.92);
+      --panel-strong: rgba(12, 16, 28, 0.98);
+      --line: rgba(255, 255, 255, 0.08);
+      --text: #f5f2ea;
+      --muted: #b5b8c7;
+      --accent: #f3c969;
+      --accent-2: #7ad3c9;
+      --danger: #f58e8e;
+      --success: #8dd6a3;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+      --radius-sm: 14px;
+      --mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", Consolas, monospace;
+      --serif: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+      --sans: "Avenir Next", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --cat-1: #f1a76f;
+      --cat-2: #89d4b7;
+      --cat-3: #88b0ff;
+      --cat-4: #d8a5ff;
+      --cat-5: #f6d56e;
+      --cat-6: #ff9db2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background:
+        radial-gradient(circle at top left, rgba(243, 201, 105, 0.16), transparent 28%),
+        radial-gradient(circle at top right, rgba(122, 211, 201, 0.1), transparent 24%),
+        linear-gradient(160deg, #090b12 0%, #0d0f17 35%, #111522 100%);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at center, black 35%, transparent 88%);
+      opacity: 0.55;
+    }
+
+    button, input {
+      font: inherit;
+    }
+
+    .app-shell {
+      width: min(1220px, calc(100vw - 24px));
+      margin: 20px auto 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      background: linear-gradient(135deg, rgba(22, 28, 44, 0.96), rgba(13, 15, 23, 0.9));
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      top: -40px;
+      width: 240px;
+      height: 240px;
+      border-radius: 999px;
+      background: radial-gradient(circle, rgba(243, 201, 105, 0.28), transparent 68%);
+      filter: blur(6px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 22px;
+      margin-top: 18px;
+      align-items: end;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 0.98;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .hero-copy p {
+      max-width: 760px;
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.7;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(10px);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .stat-value {
+      margin-top: 10px;
+      font-size: 26px;
+      font-family: var(--serif);
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .tab-btn, .pill-btn, .action-btn, .ghost-btn, .audio-btn, .mic-btn {
+      border: none;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    }
+
+    .tab-btn {
+      min-height: 46px;
+      padding: 0 18px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .tab-btn.active,
+    .pill-btn.active {
+      background: linear-gradient(135deg, rgba(243, 201, 105, 0.22), rgba(243, 201, 105, 0.08));
+      border-color: rgba(243, 201, 105, 0.42);
+      box-shadow: 0 0 0 1px rgba(243, 201, 105, 0.2) inset;
+    }
+
+    .tab-btn:hover,
+    .pill-btn:hover,
+    .action-btn:hover,
+    .ghost-btn:hover,
+    .audio-btn:hover,
+    .mic-btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .panels {
+      margin-top: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel {
+      display: none;
+      padding: 22px;
+      background: var(--panel);
+      border-radius: 26px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    .section-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 650;
+    }
+
+    .section-head p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.7;
+    }
+
+    .search-box {
+      min-width: min(100%, 320px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .search-box input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      outline: none;
+    }
+
+    .rules-grid,
+    .plan-grid,
+    .trainer-layout,
+    .summary-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .rules-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .rule-card,
+    .plan-card,
+    .trainer-card,
+    .summary-card,
+    .feedback-card {
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .rule-toggle {
+      width: 100%;
+      padding: 18px 18px 16px;
+      background: transparent;
+      border: none;
+      color: inherit;
+      text-align: left;
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+
+    .rule-title {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .rule-swatch {
+      width: 14px;
+      height: 54px;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .rule-meta h3 {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 650;
+      font-family: var(--serif);
+    }
+
+    .rule-meta p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    .rule-count {
+      color: var(--muted);
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .rule-body {
+      padding: 0 18px 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .rule-intro {
+      padding: 14px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      line-height: 1.7;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .rule-row {
+      display: grid;
+      grid-template-columns: minmax(0, 190px) minmax(0, 180px) minmax(0, 1fr) minmax(0, 210px);
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      align-items: start;
+    }
+
+    .rule-row.match {
+      border-color: rgba(243, 201, 105, 0.34);
+      background: rgba(243, 201, 105, 0.08);
+    }
+
+    .pattern-chip,
+    .sound-chip,
+    .tag,
+    .category-chip,
+    .level-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      width: fit-content;
+    }
+
+    .pattern-chip,
+    .sound-chip,
+    .word-display,
+    .ipa-display,
+    .mono {
+      font-family: var(--mono);
+    }
+
+    .rule-cell {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .cell-kicker {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .sound-cell {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .sound-chip {
+      justify-content: space-between;
+      min-width: 112px;
+    }
+
+    .sound-demo-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .examples {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+      gap: 10px;
+    }
+
+    .example-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 8px 8px 12px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .example-chip button,
+    .audio-btn,
+    .mic-btn {
+      min-width: 44px;
+      min-height: 44px;
+      padding: 0 14px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .audio-btn.compact {
+      min-width: 44px;
+      width: 44px;
+      padding: 0;
+      border-radius: 14px;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .rule-help-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .rule-help-pill {
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .empty-state {
+      padding: 22px;
+      border-radius: 22px;
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      line-height: 1.7;
+      text-align: center;
+    }
+
+    .plan-subsection {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 12px;
+    }
+
+    .pairs-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    mark {
+      background: rgba(243, 201, 105, 0.3);
+      color: var(--text);
+      border-radius: 4px;
+      padding: 0 2px;
+    }
+
+    .plan-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .plan-card {
+      padding: 18px;
+    }
+
+    .plan-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+
+    .step-badge {
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      font-family: var(--serif);
+      font-size: 24px;
+      color: #111522;
+      background: linear-gradient(135deg, rgba(243, 201, 105, 1), rgba(255, 242, 178, 1));
+    }
+
+    .plan-card h3,
+    .trainer-card h3,
+    .summary-card h3,
+    .feedback-card h3 {
+      margin: 0;
+      font-size: 22px;
+      font-family: var(--serif);
+      font-weight: 650;
+    }
+
+    .plan-card p,
+    .feedback-card p,
+    .summary-card p,
+    .trainer-subcopy {
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .plan-list,
+    .feedback-list,
+    .tool-list {
+      margin: 12px 0 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .pairs-grid,
+    .tools-grid {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .mini-panel {
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .mini-panel h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-family: var(--serif);
+    }
+
+    .trainer-layout {
+      grid-template-columns: 1.1fr 0.9fr;
+      align-items: start;
+    }
+
+    .trainer-card {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .control-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .pill-btn {
+      min-height: 42px;
+      padding: 0 16px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .progress-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .progress-bar {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(243, 201, 105, 1), rgba(122, 211, 201, 1));
+    }
+
+    .prompt-card {
+      padding: 24px;
+      border-radius: 24px;
+      background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+        linear-gradient(180deg, rgba(243, 201, 105, 0.08), transparent 55%);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      min-height: 320px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      text-align: center;
+      gap: 16px;
+    }
+
+    .word-display {
+      font-size: clamp(38px, 8vw, 72px);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      word-break: break-word;
+    }
+
+    .ipa-display {
+      font-size: clamp(30px, 6vw, 50px);
+      color: var(--accent);
+      letter-spacing: -0.03em;
+      word-break: break-word;
+    }
+
+    .action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .action-btn {
+      min-height: 48px;
+      padding: 0 18px;
+      background: linear-gradient(135deg, rgba(243, 201, 105, 0.24), rgba(243, 201, 105, 0.08));
+      color: var(--text);
+      border: 1px solid rgba(243, 201, 105, 0.34);
+    }
+
+    .ghost-btn {
+      min-height: 48px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .status-note,
+    .recognition-note {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .recognition-note.error {
+      border-color: rgba(245, 142, 142, 0.28);
+      background: rgba(245, 142, 142, 0.08);
+      color: #ffd1d1;
+    }
+
+    .recognition-note.success {
+      border-color: rgba(141, 214, 163, 0.28);
+      background: rgba(141, 214, 163, 0.08);
+      color: #d4ffe0;
+    }
+
+    .mic-btn.listening {
+      background: rgba(245, 142, 142, 0.16);
+      border-color: rgba(245, 142, 142, 0.38);
+      box-shadow: 0 0 0 8px rgba(245, 142, 142, 0.08);
+      animation: pulse 1.2s ease infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.03);
+      }
+    }
+
+    .answer-card,
+    .feedback-card,
+    .summary-card {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .answer-grid,
+    .summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .input-shell {
+      width: min(100%, 380px);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .input-shell input {
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--text);
+      outline: none;
+      font-size: 18px;
+    }
+
+    .result-badge.good {
+      color: #d4ffe0;
+      border-color: rgba(141, 214, 163, 0.38);
+      background: rgba(141, 214, 163, 0.12);
+    }
+
+    .result-badge.bad {
+      color: #ffd7d7;
+      border-color: rgba(245, 142, 142, 0.38);
+      background: rgba(245, 142, 142, 0.12);
+    }
+
+    .summary-big {
+      font-family: var(--serif);
+      font-size: clamp(42px, 8vw, 66px);
+      line-height: 1;
+    }
+
+    .wrong-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .wrong-item {
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      display: grid;
+      gap: 10px;
+    }
+
+    .tiny {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .footer-note {
+      margin-top: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 960px) {
+      .hero-grid,
+      .trainer-layout,
+      .plan-grid,
+      .pairs-grid,
+      .tools-grid,
+      .answer-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .rule-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .app-shell {
+        width: min(100vw - 14px, 100%);
+        margin: 8px auto 28px;
+      }
+
+      .hero,
+      .panel {
+        padding: 16px;
+        border-radius: 22px;
+      }
+
+      .prompt-card {
+        min-height: 260px;
+        padding: 20px 14px;
+      }
+
+      .tab-btn,
+      .pill-btn,
+      .action-btn,
+      .ghost-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .search-box,
+      .input-shell {
+        min-width: 100%;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="hero">
+      <div class="eyebrow">Offline Learning Tool · Single File HTML</div>
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <h1>Phonics<br>Decode · Encode</h1>
+          <p>把“字母组合怎么发音”和“听到发音怎么拼出来”放进同一个训练闭环。你可以把它当作一张系统规则表、一套 35 分钟每日流程，以及一间可随时开练的拼读训练室。规则表现在支持例词发音和音值示范两种播放方式。</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <div class="stat-label">规则分类</div>
+            <div class="stat-value">6</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">训练词条</div>
+            <div class="stat-value">88</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">核心模式</div>
+            <div class="stat-value">2</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">训练等级</div>
+            <div class="stat-value">3</div>
+          </div>
+        </div>
+      </div>
+      <nav class="tabs" aria-label="主导航">
+        <button id="tab-button-rules" class="tab-btn active" data-action="switch-tab" data-tab="rules">Tab 1 · 规则表</button>
+        <button id="tab-button-plan" class="tab-btn" data-action="switch-tab" data-tab="plan">Tab 2 · 每日练习计划</button>
+        <button id="tab-button-trainer" class="tab-btn" data-action="switch-tab" data-tab="trainer">Tab 3 · 拼读训练</button>
+      </nav>
+    </header>
+
+    <main class="panels">
+      <section id="tab-rules" class="panel active"></section>
+      <section id="tab-plan" class="panel"></section>
+      <section id="tab-trainer" class="panel"></section>
+    </main>
+  </div>
+
+  <script>
+    const RULE_CATEGORIES = [
+      {
+        categoryId: "open-closed-vowels",
+        name: "元音字母 · 开音节 vs 闭音节",
+        shortName: "开闭音节",
+        color: "var(--cat-1)",
+        intro: "开音节 = 以元音结尾，或以“元音 + 辅音 + e”结尾，此时末尾 e 不发音。闭音节 = 以辅音结尾，元音通常发短音。",
+        rows: [
+          { pattern: "a (开音节)", sound: "/eɪ/", examples: ["make", "late", "came", "lake"], note: "" },
+          { pattern: "a (闭音节)", sound: "/æ/", examples: ["cat", "map", "hand", "back"], note: "" },
+          { pattern: "e (开音节)", sound: "/iː/", examples: ["me", "be", "she", "these"], note: "" },
+          { pattern: "e (闭音节)", sound: "/e/", examples: ["bed", "set", "help", "next"], note: "" },
+          { pattern: "i (开音节)", sound: "/aɪ/", examples: ["bike", "like", "time", "fine"], note: "" },
+          { pattern: "i (闭音节)", sound: "/ɪ/", examples: ["sit", "big", "film", "wish"], note: "" },
+          { pattern: "o (开音节)", sound: "/oʊ/", examples: ["hope", "note", "home", "code"], note: "" },
+          { pattern: "o (闭音节)", sound: "/ɒ/", examples: ["hot", "stop", "got", "box"], note: "" },
+          { pattern: "u (开音节)", sound: "/juː/", examples: ["use", "cute", "huge", "tube"], note: "" },
+          { pattern: "u (闭音节)", sound: "/ʌ/", examples: ["cup", "bus", "run", "shut"], note: "" }
+        ]
+      },
+      {
+        categoryId: "vowel-teams",
+        name: "元音组合",
+        shortName: "元音组合",
+        color: "var(--cat-2)",
+        intro: "两个或多个元音字母放在一起时，往往形成相对稳定的发音模式，但也会带来少量高频例外。",
+        rows: [
+          { pattern: "ee", sound: "/iː/", examples: ["see", "tree", "feel", "keep"], note: "始终长 i 音" },
+          { pattern: "ea", sound: "/iː/ 或 /e/", examples: ["eat", "read", "bread", "head"], note: "多数读 /iː/，少数读 /e/" },
+          { pattern: "ai / ay", sound: "/eɪ/", examples: ["rain", "wait", "day", "play"], note: "ai 常在词中，ay 常在词尾" },
+          { pattern: "oa", sound: "/oʊ/", examples: ["boat", "road", "coat", "goal"], note: "" },
+          { pattern: "oo", sound: "/uː/ 或 /ʊ/", examples: ["food", "moon", "book", "good"], note: "长短两种读法，需要积累" },
+          { pattern: "ou / ow", sound: "/aʊ/", examples: ["house", "out", "now", "how"], note: "ow 有时读 /oʊ/，如 know / show" },
+          { pattern: "oi / oy", sound: "/ɔɪ/", examples: ["oil", "coin", "boy", "toy"], note: "oi 常在词中，oy 常在词尾" },
+          { pattern: "igh", sound: "/aɪ/", examples: ["high", "light", "night", "right"], note: "gh 不发音" },
+          { pattern: "aw / au", sound: "/ɔː/", examples: ["saw", "law", "cause", "pause"], note: "" },
+          { pattern: "ew", sound: "/juː/ 或 /uː/", examples: ["new", "few", "flew", "grew"], note: "" }
+        ]
+      },
+      {
+        categoryId: "consonant-clusters",
+        name: "辅音组合 & 不发音字母",
+        shortName: "辅音组合",
+        color: "var(--cat-3)",
+        intro: "许多辅音组合会整体发一个音，或包含不发音字母。这里是 decoding 和 encoding 最值得优先掌握的一组。",
+        rows: [
+          { pattern: "ph", sound: "/f/", examples: ["phone", "photo", "graph", "pharmacy"], note: "常见于希腊来源词" },
+          { pattern: "sh", sound: "/ʃ/", examples: ["ship", "show", "wish", "cash"], note: "" },
+          { pattern: "ch", sound: "/tʃ/", examples: ["chip", "church", "catch"], note: "少数词中 ch = /k/" },
+          { pattern: "th", sound: "/θ/ 或 /ð/", examples: ["think", "three", "this", "that"], note: "无声 /θ/，有声 /ð/" },
+          { pattern: "wh", sound: "/w/", examples: ["what", "when", "where", "why"], note: "h 不单独发音" },
+          { pattern: "wr", sound: "/r/", examples: ["write", "wrong", "wrap", "wrist"], note: "w 不发音" },
+          { pattern: "kn", sound: "/n/", examples: ["know", "knee", "knife", "knock"], note: "k 不发音" },
+          { pattern: "gh", sound: "不发音 或 /f/", examples: ["night", "eight", "cough", "laugh"], note: "词中多不发音，少数读 /f/" },
+          { pattern: "ng", sound: "/ŋ/", examples: ["sing", "ring", "long", "thing"], note: "鼻音" },
+          { pattern: "ck", sound: "/k/", examples: ["back", "kick", "rock", "duck"], note: "多出现在短元音后" },
+          { pattern: "mb", sound: "/m/", examples: ["lamb", "climb", "bomb", "thumb"], note: "b 不发音" }
+        ]
+      },
+      {
+        categoryId: "common-suffixes",
+        name: "常见后缀发音",
+        shortName: "常见后缀",
+        color: "var(--cat-4)",
+        intro: "当一个词看起来很长时，先抓后缀往往比从头到尾逐字母解码更有效。这里收录的是学习频率最高的一组。",
+        rows: [
+          { pattern: "-tion / -sion", sound: "/ʃən/", examples: ["nation", "action", "vision", "tension"], note: "最高频后缀之一" },
+          { pattern: "-ous", sound: "/əs/", examples: ["famous", "nervous", "curious"], note: "" },
+          { pattern: "-ible / -able", sound: "/əbl/", examples: ["possible", "capable", "comfortable"], note: "" },
+          { pattern: "-ment", sound: "/mənt/", examples: ["moment", "comment", "movement"], note: "" },
+          { pattern: "-ness", sound: "/nəs/", examples: ["darkness", "kindness", "sadness"], note: "" },
+          { pattern: "-ture", sound: "/tʃər/", examples: ["nature", "culture", "future", "picture"], note: "" },
+          { pattern: "-ly", sound: "/li/", examples: ["quickly", "really", "finally"], note: "" },
+          { pattern: "-ful", sound: "/fəl/", examples: ["beautiful", "helpful", "powerful"], note: "" },
+          { pattern: "-al", sound: "/əl/", examples: ["natural", "special", "general"], note: "" },
+          { pattern: "-ive", sound: "/ɪv/", examples: ["active", "creative", "massive"], note: "" },
+          { pattern: "-ence / -ance", sound: "/əns/", examples: ["silence", "distance", "importance"], note: "" }
+        ]
+      },
+      {
+        categoryId: "common-prefixes",
+        name: "常见前缀发音",
+        shortName: "常见前缀",
+        color: "var(--cat-5)",
+        intro: "前缀是多音节词的“第一把钥匙”。一旦识别出前缀，剩下部分的结构会清楚很多。",
+        rows: [
+          { pattern: "un-", sound: "/ʌn/", examples: ["undo", "unfair", "unlock"], note: "" },
+          { pattern: "re-", sound: "/riː/ 或 /rɪ/", examples: ["redo", "return", "repeat"], note: "" },
+          { pattern: "pre-", sound: "/priː/", examples: ["preview", "predict", "prepare"], note: "" },
+          { pattern: "dis-", sound: "/dɪs/", examples: ["dislike", "discover", "discuss"], note: "" },
+          { pattern: "mis-", sound: "/mɪs/", examples: ["mistake", "misuse", "mislead"], note: "" },
+          { pattern: "ex-", sound: "/ɪks/ 或 /eks/", examples: ["exit", "explain", "expect"], note: "" },
+          { pattern: "inter-", sound: "/ɪntər/", examples: ["internet", "interact", "interest"], note: "" },
+          { pattern: "over-", sound: "/oʊvər/", examples: ["over", "overcome", "overlook"], note: "" },
+          { pattern: "under-", sound: "/ʌndər/", examples: ["understand", "underline"], note: "" },
+          { pattern: "trans-", sound: "/trænz/", examples: ["transfer", "translate", "transport"], note: "" }
+        ]
+      },
+      {
+        categoryId: "magic-e-r-controlled",
+        name: "Magic E & R-controlled 元音",
+        shortName: "Magic E / Bossy R",
+        color: "var(--cat-6)",
+        intro: "Magic E 会让前面的元音变成长音；Bossy R 则会“控制”元音，把它拉向另一种音色。这两组规则是长元音与 r 控制元音的核心。",
+        rows: [
+          { pattern: "a_e", sound: "/eɪ/", examples: ["cake", "name", "late", "game"], note: "Magic E" },
+          { pattern: "i_e", sound: "/aɪ/", examples: ["like", "ride", "time", "fine"], note: "Magic E" },
+          { pattern: "o_e", sound: "/oʊ/", examples: ["home", "note", "hope", "code"], note: "Magic E" },
+          { pattern: "u_e", sound: "/juː/", examples: ["use", "cute", "rule", "huge"], note: "Magic E" },
+          { pattern: "e_e", sound: "/iː/", examples: ["these", "complete"], note: "Magic E" },
+          { pattern: "ar", sound: "/ɑːr/", examples: ["car", "star", "hard", "part"], note: "Bossy R" },
+          { pattern: "er", sound: "/ɜːr/", examples: ["her", "term", "serve"], note: "Bossy R" },
+          { pattern: "ir", sound: "/ɜːr/", examples: ["bird", "first", "girl"], note: "Bossy R" },
+          { pattern: "ur", sound: "/ɜːr/", examples: ["turn", "nurse", "burn"], note: "Bossy R" },
+          { pattern: "or", sound: "/ɔːr/", examples: ["for", "more", "born", "sport"], note: "Bossy R" },
+          { pattern: "ore / oar", sound: "/ɔːr/", examples: ["more", "store", "board", "roar"], note: "Bossy R" },
+          { pattern: "air / are", sound: "/eər/", examples: ["fair", "chair", "care", "share"], note: "Bossy R" }
+        ]
+      }
+    ];
+
+    const DAILY_PLAN = [
+      {
+        step: "Step 1",
+        title: "Phonics 规则学习",
+        duration: "10 分钟",
+        purpose: "每天系统学习 1 个规则分类，把规则从“看过”推进到“能主动调用”。",
+        actions: [
+          "打开 Tab 1，按周计划选择当天的规则分类。",
+          "逐条看规则并大声朗读所有例词，避免默读。",
+          "每条规则都自己再想 3 个符合该规则的单词。",
+          "想不出来的规则立刻标记，周日集中复盘。",
+          "特别留意例外提示，例如 ea、oo 等多读法规则。"
+        ]
+      },
+      {
+        step: "Step 2",
+        title: "Minimal Pairs 辨音训练",
+        duration: "10 分钟",
+        purpose: "训练耳朵区分相近音，把 sound → letter 的映射建立起来。",
+        actions: [
+          "每次挑 6-8 组 minimal pairs，先听后说。",
+          "判断区别在哪个音，再自己分别说两遍。",
+          "感受口腔位置、唇形和舌位变化。",
+          "最后必须用规则解释拼写为什么不同。"
+        ]
+      },
+      {
+        step: "Step 3",
+        title: "看词读音（Decode）",
+        duration: "10 分钟",
+        purpose: "把拼写拆解成可操作的规则，建立 spelling → sound 的解码能力。",
+        actions: [
+          "进入 Tab 3 的 Decode 模式。",
+          "先找元音，看开闭音节、Magic E、R-controlled。",
+          "再看有没有元音组合、辅音组合、前后缀。",
+          "先自己读，再看答案，不要先偷看。",
+          "错了就立刻定位是哪一条规则出了问题。"
+        ]
+      },
+      {
+        step: "Step 4",
+        title: "听音写词（Encode）",
+        duration: "5 分钟",
+        purpose: "从音反推字母组合，训练 spelling 的精确性。",
+        actions: [
+          "进入 Encode 模式，看音标并按需播放正确发音。",
+          "先分音节，再判断每段元音可能对应的字母组合。",
+          "识别辅音、不发音字母、前后缀。",
+          "输入完整拼写，完全匹配才算正确。"
+        ]
+      },
+      {
+        step: "Step 5",
+        title: "错题归因",
+        duration: "练后立刻",
+        purpose: "把错误归因到规则，而不是只记住“这个词我又错了”。",
+        actions: [
+          "记录错词、你的读法或拼写、正确答案、出错规则。",
+          "按规则分类复盘，而不是按单词顺序复盘。",
+          "重复出错的规则，下次回 Tab 1 单独加练。"
+        ]
+      }
+    ];
+
+    const WEEKLY_PLAN = [
+      "周一：元音 · 开音节 vs 闭音节",
+      "周二：元音组合",
+      "周三：辅音组合 & 不发音字母",
+      "周四：常见后缀",
+      "周五：常见前缀",
+      "周六：Magic E & R-controlled",
+      "周日：复习本周弱项规则"
+    ];
+
+    const MINIMAL_PAIRS = [
+      {
+        title: "第一梯队 · 元音长短",
+        items: [
+          "ship / sheep → /ɪ/ vs /iː/",
+          "pull / pool → /ʊ/ vs /uː/",
+          "full / fool → /ʊ/ vs /uː/",
+          "cat / cut → /æ/ vs /ʌ/",
+          "bat / bet → /æ/ vs /e/",
+          "cap / cup → /æ/ vs /ʌ/",
+          "hat / hut → /æ/ vs /ʌ/"
+        ]
+      },
+      {
+        title: "第二梯队 · 辅音区分",
+        items: [
+          "light / right → /l/ vs /r/",
+          "glass / grass → /l/ vs /r/",
+          "fan / van → /f/ vs /v/",
+          "vest / west → /v/ vs /w/",
+          "rice / rise → /s/ vs /z/",
+          "cap / cab → /p/ vs /b/",
+          "think / sink → /θ/ vs /s/",
+          "three / free → /θ/ vs /f/"
+        ]
+      },
+      {
+        title: "第三梯队 · 元音细分",
+        items: [
+          "bed / bad → /e/ vs /æ/",
+          "sit / set → /ɪ/ vs /e/",
+          "hot / hut → /ɒ/ vs /ʌ/",
+          "caught / coat → /ɔː/ vs /oʊ/"
+        ]
+      }
+    ];
+
+    const TOOL_RECOMMENDATIONS = [
+      "Elsa Speak：AI 发音评测 + minimal pairs",
+      "Sounds of Speech：查看口腔动作和发音位置",
+      "Forvo：真人发音，多口音对比",
+      "Cambridge Dictionary：词典、音标、英美音",
+      "Rachel's English：系统 phonics / 发音课",
+      "YouGlish：搜一个词，看真人在视频里怎么说"
+    ];
+
+    const TRAINING_WORDS = [
+      { word: "cat", ipa: "/kæt/", hint: "a 在闭音节中通常读 /æ/。", level: 1, rules_involved: ["a (闭音节) = /æ/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节"], notes: "经典 CVC 结构。" },
+      { word: "dog", ipa: "/dɔːɡ/", hint: "o 在闭音节里是短元音，辅音收尾清晰。", level: 1, rules_involved: ["o (闭音节)"], categoryRefs: ["元音字母 · 开音节 vs 闭音节"], notes: "英美音会略有差异。" },
+      { word: "sit", ipa: "/sɪt/", hint: "i 在闭音节中读 /ɪ/。", level: 1, rules_involved: ["i (闭音节) = /ɪ/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "run", ipa: "/rʌn/", hint: "u 在闭音节中多读 /ʌ/。", level: 1, rules_involved: ["u (闭音节) = /ʌ/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "bed", ipa: "/bed/", hint: "e 在闭音节里读 /e/。", level: 1, rules_involved: ["e (闭音节) = /e/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "fish", ipa: "/fɪʃ/", hint: "i 闭音节短音，sh = /ʃ/。", level: 1, rules_involved: ["i (闭音节)", "sh = /ʃ/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "辅音组合 & 不发音字母"], notes: "" },
+      { word: "ship", ipa: "/ʃɪp/", hint: "sh = /ʃ/，i 在闭音节读 /ɪ/。", level: 1, rules_involved: ["sh = /ʃ/", "i (闭音节)"], categoryRefs: ["辅音组合 & 不发音字母", "元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "shop", ipa: "/ʃɒp/", hint: "sh = /ʃ/，o 在闭音节中读短音。", level: 1, rules_involved: ["sh = /ʃ/", "o (闭音节)"], categoryRefs: ["辅音组合 & 不发音字母", "元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "chip", ipa: "/tʃɪp/", hint: "ch 在多数情况下读 /tʃ/。", level: 1, rules_involved: ["ch = /tʃ/", "i (闭音节)"], categoryRefs: ["辅音组合 & 不发音字母", "元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "thin", ipa: "/θɪn/", hint: "th 在这里读无声 /θ/。", level: 1, rules_involved: ["th = /θ/"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "phone", ipa: "/foʊn/", hint: "ph = /f/，o_e 让 o 读 /oʊ/。", level: 1, rules_involved: ["ph = /f/", "o_e = /oʊ/"], categoryRefs: ["辅音组合 & 不发音字母", "Magic E & R-controlled 元音"], notes: "" },
+      { word: "make", ipa: "/meɪk/", hint: "a_e 是 Magic E 模式。", level: 1, rules_involved: ["a_e = /eɪ/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "bike", ipa: "/baɪk/", hint: "i_e 让 i 读长音 /aɪ/。", level: 1, rules_involved: ["i_e = /aɪ/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "hope", ipa: "/hoʊp/", hint: "o_e 让 o 读 /oʊ/。", level: 1, rules_involved: ["o_e = /oʊ/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "cute", ipa: "/kjuːt/", hint: "u_e 常读 /juː/。", level: 1, rules_involved: ["u_e = /juː/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "tree", ipa: "/triː/", hint: "ee 稳定读 /iː/。", level: 1, rules_involved: ["ee = /iː/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "rain", ipa: "/reɪn/", hint: "ai 在词中常读 /eɪ/。", level: 1, rules_involved: ["ai = /eɪ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "boat", ipa: "/boʊt/", hint: "oa 常读 /oʊ/。", level: 1, rules_involved: ["oa = /oʊ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "book", ipa: "/bʊk/", hint: "oo 有时是短音 /ʊ/。", level: 1, rules_involved: ["oo = /ʊ/"], categoryRefs: ["元音组合"], notes: "和 food 构成对照。" },
+      { word: "food", ipa: "/fuːd/", hint: "oo 也常读长音 /uː/。", level: 1, rules_involved: ["oo = /uː/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "night", ipa: "/naɪt/", hint: "igh = /aɪ/，gh 不发音。", level: 1, rules_involved: ["igh = /aɪ/", "gh 不发音"], categoryRefs: ["元音组合", "辅音组合 & 不发音字母"], notes: "" },
+      { word: "light", ipa: "/laɪt/", hint: "核心线索仍然是 igh = /aɪ/。", level: 1, rules_involved: ["igh = /aɪ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "play", ipa: "/pleɪ/", hint: "ay 在词尾常读 /eɪ/。", level: 1, rules_involved: ["ay = /eɪ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "coin", ipa: "/kɔɪn/", hint: "oi 在词中常读 /ɔɪ/。", level: 1, rules_involved: ["oi = /ɔɪ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "house", ipa: "/haʊs/", hint: "ou / ow 常读 /aʊ/。", level: 1, rules_involved: ["ou = /aʊ/"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "star", ipa: "/stɑːr/", hint: "ar 是典型的 R-controlled 元音。", level: 1, rules_involved: ["ar = /ɑːr/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "bird", ipa: "/bɜːrd/", hint: "ir 被 r 控制，读 /ɜːr/。", level: 1, rules_involved: ["ir = /ɜːr/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "turn", ipa: "/tɜːrn/", hint: "ur 常读 /ɜːr/。", level: 1, rules_involved: ["ur = /ɜːr/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+
+      { word: "nation", ipa: "/ˈneɪʃən/", hint: "a 在开音节里拉长，-tion = /ʃən/。", level: 2, rules_involved: ["-tion = /ʃən/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "action", ipa: "/ˈækʃən/", hint: "闭音节 a = /æ/，结尾 -tion = /ʃən/。", level: 2, rules_involved: ["a (闭音节)", "-tion = /ʃən/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "常见后缀发音"], notes: "" },
+      { word: "vision", ipa: "/ˈvɪʒən/", hint: "-sion 在这里读 /ʒən/，属于高频变体。", level: 2, rules_involved: ["-sion 变体"], categoryRefs: ["常见后缀发音"], notes: "和 nation / action 对比记忆。" },
+      { word: "beautiful", ipa: "/ˈbjuːtɪfəl/", hint: "bea- 带长音，-ful 常弱读为 /fəl/。", level: 2, rules_involved: ["-ful = /fəl/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "helpful", ipa: "/ˈhelpfəl/", hint: "help + ful，结尾 ful 轻读。", level: 2, rules_involved: ["-ful = /fəl/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "powerful", ipa: "/ˈpaʊərfəl/", hint: "ou = /aʊ/，结尾 -ful 弱读。", level: 2, rules_involved: ["ou = /aʊ/", "-ful = /fəl/"], categoryRefs: ["元音组合", "常见后缀发音"], notes: "" },
+      { word: "possible", ipa: "/ˈpɒsəbl/", hint: "-ible / -able 常收成 /əbl/。", level: 2, rules_involved: ["-ible = /əbl/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "capable", ipa: "/ˈkeɪpəbl/", hint: "开头 a 读 /eɪ/，-able = /əbl/。", level: 2, rules_involved: ["a (开音节)", "-able = /əbl/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "常见后缀发音"], notes: "" },
+      { word: "movement", ipa: "/ˈmuːvmənt/", hint: "move + ment，-ment = /mənt/。", level: 2, rules_involved: ["-ment = /mənt/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "comment", ipa: "/ˈkɒment/", hint: "o 在闭音节里短读，-ment 结尾稳定。", level: 2, rules_involved: ["o (闭音节)", "-ment = /mənt/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "常见后缀发音"], notes: "" },
+      { word: "darkness", ipa: "/ˈdɑːrknəs/", hint: "dark + ness，-ness = /nəs/。", level: 2, rules_involved: ["ar = /ɑːr/", "-ness = /nəs/"], categoryRefs: ["Magic E & R-controlled 元音", "常见后缀发音"], notes: "" },
+      { word: "kindness", ipa: "/ˈkaɪndnəs/", hint: "kind + ness，-ness 弱读。", level: 2, rules_involved: ["-ness = /nəs/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "nature", ipa: "/ˈneɪtʃər/", hint: "a 长音，-ture 常读 /tʃər/。", level: 2, rules_involved: ["-ture = /tʃər/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "culture", ipa: "/ˈkʌltʃər/", hint: "u 在闭音节里短读，-ture = /tʃər/。", level: 2, rules_involved: ["u (闭音节)", "-ture = /tʃər/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "常见后缀发音"], notes: "" },
+      { word: "future", ipa: "/ˈfjuːtʃər/", hint: "fu- 带 /fjuː/，-ture = /tʃər/。", level: 2, rules_involved: ["u_e / yu-sound", "-ture = /tʃər/"], categoryRefs: ["Magic E & R-controlled 元音", "常见后缀发音"], notes: "" },
+      { word: "creative", ipa: "/kriˈeɪtɪv/", hint: "-ive 收尾常是 /ɪv/。", level: 2, rules_involved: ["-ive = /ɪv/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "active", ipa: "/ˈæktɪv/", hint: "闭音节 a + -ive。", level: 2, rules_involved: ["a (闭音节)", "-ive = /ɪv/"], categoryRefs: ["元音字母 · 开音节 vs 闭音节", "常见后缀发音"], notes: "" },
+      { word: "discover", ipa: "/dɪˈskʌvər/", hint: "dis- 是高频前缀。", level: 2, rules_involved: ["dis- = /dɪs/"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "repeat", ipa: "/rɪˈpiːt/", hint: "re- 在这里更接近 /rɪ/。", level: 2, rules_involved: ["re-"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "return", ipa: "/rɪˈtɜːrn/", hint: "re- + ur = /ɜːr/。", level: 2, rules_involved: ["re-", "ur = /ɜːr/"], categoryRefs: ["常见前缀发音", "Magic E & R-controlled 元音"], notes: "" },
+      { word: "interact", ipa: "/ˌɪntərˈækt/", hint: "inter- 是稳定前缀。", level: 2, rules_involved: ["inter- = /ɪntər/"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "overcome", ipa: "/ˌoʊvərˈkʌm/", hint: "over- 是高频前缀。", level: 2, rules_involved: ["over- = /oʊvər/"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "understand", ipa: "/ˌʌndərˈstænd/", hint: "under- 是高频前缀。", level: 2, rules_involved: ["under- = /ʌndər/"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "translate", ipa: "/trænzˈleɪt/", hint: "trans- 开头，结尾 late 体现长 a。", level: 2, rules_involved: ["trans- = /trænz/", "a (开音节)"], categoryRefs: ["常见前缀发音", "元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "important", ipa: "/ɪmˈpɔːrtənt/", hint: "or 是 R-controlled 元音。", level: 2, rules_involved: ["or = /ɔːr/"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "dangerous", ipa: "/ˈdeɪndʒərəs/", hint: "a 长音，-ous 常读 /əs/。", level: 2, rules_involved: ["-ous = /əs/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "general", ipa: "/ˈdʒenərəl/", hint: "-al 收尾常弱读为 /əl/。", level: 2, rules_involved: ["-al = /əl/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "natural", ipa: "/ˈnætʃərəl/", hint: "-ture 家族相关的 /tʃər/ 音色 + -al。", level: 2, rules_involved: ["-al = /əl/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "finally", ipa: "/ˈfaɪnəli/", hint: "final + ly，-ly 常读 /li/。", level: 2, rules_involved: ["-ly = /li/"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "really", ipa: "/ˈriːəli/", hint: "real + ly，-ly 收尾清晰。", level: 2, rules_involved: ["ea", "-ly = /li/"], categoryRefs: ["元音组合", "常见后缀发音"], notes: "" },
+
+      { word: "catastrophe", ipa: "/kəˈtæstrəfi/", hint: "多音节词要按音节拆，不要逐字母硬读。", level: 3, rules_involved: ["多音节拆分", "ph = /f/"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "结尾 ph 仍然读 /f/。" },
+      { word: "psychology", ipa: "/saɪˈkɒlədʒi/", hint: "词首 ps 中 p 不发音。", level: 3, rules_involved: ["不发音字母 p", "多音节拆分"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "architecture", ipa: "/ˈɑːrkɪtektʃər/", hint: "archi + tecture，后段仍有 /tʃər/。", level: 3, rules_involved: ["ar = /ɑːr/", "-ture 家族"], categoryRefs: ["Magic E & R-controlled 元音", "常见后缀发音"], notes: "" },
+      { word: "entrepreneur", ipa: "/ˌɒntrəprəˈnɜːr/", hint: "这是挑战级不规则词，要靠音节和重音辅助记忆。", level: 3, rules_involved: ["多音节拆分", "不规则拼写"], categoryRefs: ["常见前缀发音"], notes: "更适合反复听写记忆。" },
+      { word: "acknowledge", ipa: "/əkˈnɒlɪdʒ/", hint: "kn / k 类静音现象值得注意。", level: 3, rules_involved: ["不发音字母", "多音节拆分"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "phenomenon", ipa: "/fəˈnɒmɪnən/", hint: "ph = /f/，其余按音节推进。", level: 3, rules_involved: ["ph = /f/", "多音节拆分"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "incredible", ipa: "/ɪnˈkredəbl/", hint: "in- + cred + ible，-ible = /əbl/。", level: 3, rules_involved: ["-ible = /əbl/"], categoryRefs: ["常见后缀发音"], notes: "编码时很适合按音节反推。" },
+      { word: "comfortable", ipa: "/ˈkʌmftəbl/", hint: "-able = /əbl/，中间存在缩读。", level: 3, rules_involved: ["-able = /əbl/", "缩读"], categoryRefs: ["常见后缀发音"], notes: "常被误读成四音节。" },
+      { word: "temperature", ipa: "/ˈtemprətʃər/", hint: "中间常缩成 tempr-，结尾仍近似 /tʃər/。", level: 3, rules_involved: ["缩读", "-ture 家族"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "photograph", ipa: "/ˈfoʊtəɡræf/", hint: "ph = /f/，o 读 /oʊ/。", level: 3, rules_involved: ["ph = /f/", "o (开音节)"], categoryRefs: ["辅音组合 & 不发音字母", "元音字母 · 开音节 vs 闭音节"], notes: "" },
+      { word: "knowledge", ipa: "/ˈnɒlɪdʒ/", hint: "kn 中 k 不发音，ow 在这里不是 /aʊ/。", level: 3, rules_involved: ["kn = /n/", "例外读法"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "Wednesday", ipa: "/ˈwenzdeɪ/", hint: "书写与发音差距大，d 常不明显。", level: 3, rules_involved: ["不发音字母", "例外读法"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "colonel", ipa: "/ˈkɜːrnəl/", hint: "高度不规则，需要整词记忆。", level: 3, rules_involved: ["不规则拼写"], categoryRefs: ["Magic E & R-controlled 元音"], notes: "" },
+      { word: "rhythm", ipa: "/ˈrɪðəm/", hint: "y 在这里承担元音角色。", level: 3, rules_involved: ["不规则拼写", "th = /ð/"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "receipt", ipa: "/rɪˈsiːt/", hint: "p 不发音，ei 在这里服务于 /iː/。", level: 3, rules_involved: ["不发音字母", "元音组合变体"], categoryRefs: ["辅音组合 & 不发音字母", "元音组合"], notes: "" },
+      { word: "guarantee", ipa: "/ˌɡærənˈtiː/", hint: "结尾 ee 保持 /iː/。", level: 3, rules_involved: ["ee = /iː/", "多音节拆分"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "queue", ipa: "/kjuː/", hint: "多个元音字母堆叠，但整词发音很短。", level: 3, rules_involved: ["不规则拼写", "u_e / yu-sound"], categoryRefs: ["元音组合", "Magic E & R-controlled 元音"], notes: "" },
+      { word: "conscience", ipa: "/ˈkɒnʃəns/", hint: "sci 在这里形成 /ʃ/ 音色。", level: 3, rules_involved: ["辅音组合变体", "-ence = /əns/"], categoryRefs: ["辅音组合 & 不发音字母", "常见后缀发音"], notes: "" },
+      { word: "muscle", ipa: "/ˈmʌsəl/", hint: "c 不明显，词尾读作 /səl/。", level: 3, rules_involved: ["不发音字母", "例外读法"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "island", ipa: "/ˈaɪlənd/", hint: "s 不发音。", level: 3, rules_involved: ["不发音字母"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "subtle", ipa: "/ˈsʌtəl/", hint: "b 不发音。", level: 3, rules_involved: ["不发音字母"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "doubt", ipa: "/daʊt/", hint: "b 不发音，ou = /aʊ/。", level: 3, rules_involved: ["不发音字母", "ou = /aʊ/"], categoryRefs: ["辅音组合 & 不发音字母", "元音组合"], notes: "" },
+      { word: "foreign", ipa: "/ˈfɒrən/", hint: "ei / gn 组合不按直觉走。", level: 3, rules_involved: ["不规则拼写", "多音节拆分"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "mortgage", ipa: "/ˈmɔːrɡɪdʒ/", hint: "t 不发音，or 是 R-controlled。", level: 3, rules_involved: ["不发音字母", "or = /ɔːr/"], categoryRefs: ["辅音组合 & 不发音字母", "Magic E & R-controlled 元音"], notes: "" },
+      { word: "vehicle", ipa: "/ˈviːɪkəl/", hint: "vh 不常见，重点是拆音节。", level: 3, rules_involved: ["多音节拆分"], categoryRefs: ["元音组合"], notes: "" },
+      { word: "vegetable", ipa: "/ˈvedʒtəbəl/", hint: "-able 收成 /əbl/，中间会缩读。", level: 3, rules_involved: ["-able = /əbl/", "缩读"], categoryRefs: ["常见后缀发音"], notes: "" },
+      { word: "chocolate", ipa: "/ˈtʃɒklət/", hint: "中间常缩成 choc-late 的口语节奏。", level: 3, rules_involved: ["缩读", "ch = /tʃ/"], categoryRefs: ["辅音组合 & 不发音字母"], notes: "" },
+      { word: "interesting", ipa: "/ˈɪntrəstɪŋ/", hint: "常缩成 intr-sting 的节奏，不按字母逐个展开。", level: 3, rules_involved: ["缩读", "ing 音节"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "different", ipa: "/ˈdɪfrənt/", hint: "常缩读为 dif-rent。", level: 3, rules_involved: ["缩读"], categoryRefs: ["常见前缀发音"], notes: "" },
+      { word: "restaurant", ipa: "/ˈrestrɒnt/", hint: "真实口语中中间元音会弱化。", level: 3, rules_involved: ["缩读", "多音节拆分"], categoryRefs: ["常见前缀发音"], notes: "" }
+    ];
+
+    const categoryLookup = Object.fromEntries(RULE_CATEGORIES.map((item) => [item.name, item]));
+
+    const state = {
+      activeTab: "rules",
+      activeRuleCategory: RULE_CATEGORIES[0].categoryId,
+      ruleSearch: "",
+      voices: [],
+      audioManifest: {
+        words: {},
+        examples: {},
+        phonemes: {}
+      },
+      activeAudio: null,
+      trainer: {
+        mode: "decode",
+        level: 1,
+        session: null
+      }
+    };
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function escapeRegExp(value) {
+      return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+
+    function highlightText(text, query) {
+      const safeText = escapeHtml(String(text));
+      if (!query) return safeText;
+      const regex = new RegExp(`(${escapeRegExp(query)})`, "ig");
+      return safeText.replace(regex, "<mark>$1</mark>");
+    }
+
+    function normalizeWord(value) {
+      return String(value || "").trim().toLowerCase();
+    }
+
+    function shuffleArray(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    function createSession(mode, level) {
+      return {
+        mode,
+        level,
+        deck: shuffleArray(TRAINING_WORDS.filter((item) => item.level === level)),
+        index: 0,
+        correct: 0,
+        attempted: 0,
+        wrongItems: [],
+        revealHint: false,
+        answerVisible: false,
+        evaluated: false,
+        inputValue: "",
+        transcript: "",
+        recognitionStatus: "",
+        recognitionTone: "",
+        listening: false,
+        completed: false
+      };
+    }
+
+    function ensureSession() {
+      if (!state.trainer.session || state.trainer.session.mode !== state.trainer.mode || state.trainer.session.level !== state.trainer.level) {
+        state.trainer.session = createSession(state.trainer.mode, state.trainer.level);
+      }
+      return state.trainer.session;
+    }
+
+    function getCurrentItem() {
+      const session = ensureSession();
+      return session.deck[session.index] || null;
+    }
+
+    function getPreferredVoice() {
+      const exact = state.voices.find((voice) => voice.lang === "en-US");
+      if (exact) return exact;
+      const us = state.voices.find((voice) => /en-us|american/i.test(`${voice.lang} ${voice.name}`));
+      if (us) return us;
+      return state.voices.find((voice) => /^en/i.test(voice.lang)) || null;
+    }
+
+    function loadVoices() {
+      state.voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+    }
+
+    function speak(text) {
+      if (!window.speechSynthesis || !text) return;
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "en-US";
+      utterance.rate = 0.85;
+      const voice = getPreferredVoice();
+      if (voice) utterance.voice = voice;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    }
+
+    async function loadAudioManifest() {
+      try {
+        const response = await fetch("data/audio-manifest.json");
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        state.audioManifest = await response.json();
+      } catch (error) {
+        console.warn("audio-manifest load failed, fallback to speechSynthesis only", error);
+        state.audioManifest = {
+          words: {},
+          examples: {},
+          phonemes: {}
+        };
+      }
+    }
+
+    function getAudioPath(kind, key) {
+      if (!key) return "";
+      return state.audioManifest?.[kind]?.[key] || "";
+    }
+
+    function stopActiveAudio() {
+      if (!state.activeAudio) return;
+      state.activeAudio.pause();
+      state.activeAudio.currentTime = 0;
+      state.activeAudio = null;
+    }
+
+    function playAudioResource(path, fallbackText = "") {
+      if (!path) {
+        speak(fallbackText);
+        return Promise.resolve(false);
+      }
+
+      stopActiveAudio();
+      const audio = new Audio(path);
+      state.activeAudio = audio;
+      return audio.play()
+        .then(() => true)
+        .catch((error) => {
+          console.warn(`audio playback failed for ${path}, using fallback speech`, error);
+          state.activeAudio = null;
+          speak(fallbackText);
+          return false;
+        });
+    }
+
+    function playWordAudio(word) {
+      const normalized = normalizeWord(word);
+      const path = getAudioPath("words", normalized) || getAudioPath("examples", normalized);
+      return playAudioResource(path, word);
+    }
+
+    function playPhonemeAudio(sound, demo) {
+      const path = getAudioPath("phonemes", sound) || getAudioPath("examples", normalizeWord(demo));
+      return playAudioResource(path, demo);
+    }
+
+    function getAccuracy(session) {
+      if (!session.attempted) return 0;
+      return Math.round((session.correct / session.attempted) * 100);
+    }
+
+    function scoreCurrent(isCorrect, source) {
+      const session = ensureSession();
+      const current = getCurrentItem();
+      if (!current || session.evaluated) return;
+      session.evaluated = true;
+      session.answerVisible = true;
+      session.attempted += 1;
+      if (isCorrect) {
+        session.correct += 1;
+      } else {
+        session.wrongItems.push({
+          ...current,
+          source,
+          transcript: session.transcript
+        });
+      }
+      playWordAudio(current.word);
+      render();
+    }
+
+    function revealCurrentAnswer(markWrong = false) {
+      const session = ensureSession();
+      if (session.answerVisible) return;
+      session.answerVisible = true;
+      if (markWrong && !session.evaluated) {
+        scoreCurrent(false, "give-up");
+        return;
+      }
+      const current = getCurrentItem();
+      if (current) playWordAudio(current.word);
+      render();
+    }
+
+    function goToNextQuestion() {
+      const session = ensureSession();
+      if (session.index >= session.deck.length - 1) {
+        session.completed = true;
+        render();
+        return;
+      }
+      session.index += 1;
+      session.revealHint = false;
+      session.answerVisible = false;
+      session.evaluated = false;
+      session.inputValue = "";
+      session.transcript = "";
+      session.recognitionStatus = "";
+      session.recognitionTone = "";
+      session.listening = false;
+      render();
+    }
+
+    function restartSession() {
+      state.trainer.session = createSession(state.trainer.mode, state.trainer.level);
+      render();
+    }
+
+    function setMode(mode) {
+      state.trainer.mode = mode;
+      restartSession();
+    }
+
+    function setLevel(level) {
+      state.trainer.level = level;
+      restartSession();
+    }
+
+    function startRecognition() {
+      const session = ensureSession();
+      const current = getCurrentItem();
+      if (!SpeechRecognition || !current) return;
+      if (!recognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = "en-US";
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 3;
+
+        recognition.onresult = (event) => {
+          const transcriptList = [];
+          for (const result of event.results[0]) {
+            transcriptList.push(normalizeWord(result.transcript));
+          }
+          const isCorrect = transcriptList.some((text) => text === normalizeWord(current.word));
+          session.transcript = transcriptList.join(" / ");
+          session.recognitionStatus = isCorrect
+            ? `识别结果：${session.transcript || "（空）"}`
+            : `识别结果：${session.transcript || "（空）"}，你可以和目标词对照。`;
+          session.recognitionTone = isCorrect ? "success" : "error";
+          session.listening = false;
+          scoreCurrent(isCorrect, "speech");
+        };
+
+        recognition.onerror = (event) => {
+          session.listening = false;
+          session.recognitionStatus = `语音识别暂时不可用：${event.error}。你仍然可以使用手动自评。`;
+          session.recognitionTone = "error";
+          render();
+        };
+
+        recognition.onend = () => {
+          session.listening = false;
+          render();
+        };
+      }
+
+      try {
+        session.recognitionStatus = "需要麦克风权限来识别你的发音。";
+        session.recognitionTone = "";
+        session.listening = true;
+        render();
+        recognition.start();
+      } catch (error) {
+        session.listening = false;
+        session.recognitionStatus = "语音识别没有成功启动，请改用手动自评。";
+        session.recognitionTone = "error";
+        render();
+      }
+    }
+
+    function getCategoryColor(categoryName) {
+      return categoryLookup[categoryName]?.color || "rgba(255,255,255,0.18)";
+    }
+
+    function getSoundDemo(row) {
+      const soundDemo = row.soundDemo || row.examples[0] || "";
+      return soundDemo;
+    }
+
+    function getSoundDemoMeta(row) {
+      if (row.sound.includes("不发音")) {
+        return "播放代表例词，辅助理解这一条规则在真实单词中的读法。";
+      }
+      if (row.sound.includes("或")) {
+        return "播放主示范音；多读法规则仍建议结合右侧例词一起听。";
+      }
+      return "播放这个音值的代表示范音。";
+    }
+
+    function getWrongCategoryStats(items) {
+      const counts = {};
+      items.forEach((item) => {
+        item.categoryRefs.forEach((categoryName) => {
+          counts[categoryName] = (counts[categoryName] || 0) + 1;
+        });
+      });
+      return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }
+
+    function restoreRuleSearchFocus(shouldFocus, selectionStart, selectionEnd) {
+      if (!shouldFocus) return;
+      const input = document.getElementById("rule-search");
+      if (!input) return;
+      input.focus();
+      if (typeof selectionStart === "number" && typeof selectionEnd === "number") {
+        input.setSelectionRange(selectionStart, selectionEnd);
+      }
+    }
+
+    function renderRules(options = {}) {
+      const {
+        preserveFocus = false,
+        selectionStart = null,
+        selectionEnd = null
+      } = options;
+      const query = normalizeWord(state.ruleSearch);
+      const matchingCategories = RULE_CATEGORIES
+        .map((category) => {
+          const matchedRows = category.rows.filter((row) => {
+            const haystack = `${row.pattern} ${row.sound} ${row.examples.join(" ")} ${row.note}`.toLowerCase();
+            return !query || haystack.includes(query);
+          });
+          return {
+            category,
+            matchedRows
+          };
+        })
+        .filter(({ matchedRows }) => matchedRows.length > 0);
+
+      const visibleCategories = query ? matchingCategories : RULE_CATEGORIES.map((category) => ({
+        category,
+        matchedRows: category.rows
+      }));
+
+      const content = visibleCategories.map(({ category, matchedRows }) => {
+        const isOpen = query ? true : state.activeRuleCategory === category.categoryId;
+        const rows = matchedRows.map((row) => {
+          const haystack = `${row.pattern} ${row.sound} ${row.examples.join(" ")} ${row.note}`.toLowerCase();
+          const isMatch = query ? haystack.includes(query) : false;
+          const soundDemo = getSoundDemo(row);
+          return `
+            <div class="rule-row ${isMatch ? "match" : ""}">
+              <div class="rule-cell">
+                <div class="cell-kicker">Letter Pattern</div>
+                <div class="pattern-chip" style="border-color:${category.color}; box-shadow: 0 0 0 1px ${category.color}33 inset;">${highlightText(row.pattern, query)}</div>
+              </div>
+              <div class="sound-cell">
+                <div class="cell-kicker">Sound / IPA</div>
+                <div class="sound-chip">
+                  <span>${highlightText(row.sound, query)}</span>
+                  <button
+                    class="audio-btn compact"
+                    type="button"
+                    data-action="speak-phoneme"
+                    data-sound="${escapeHtml(row.sound)}"
+                    data-demo="${escapeHtml(soundDemo)}"
+                    aria-label="播放音值示范 ${escapeHtml(row.sound)}"
+                    title="播放音值示范"
+                  >🔊</button>
+                </div>
+                <div class="sound-demo-meta">${getSoundDemoMeta(row)}</div>
+              </div>
+              <div class="rule-cell">
+                <div class="cell-kicker">Examples</div>
+                <div class="examples">
+                ${row.examples.map((example) => `
+                  <span class="example-chip">
+                    <span>${highlightText(example, query)}</span>
+                    <button class="audio-btn compact" type="button" data-action="speak-word" data-word="${escapeHtml(example)}" aria-label="播放 ${escapeHtml(example)}">🔊</button>
+                  </span>
+                `).join("")}
+                </div>
+              </div>
+              <div class="rule-cell">
+                <div class="cell-kicker">Notes</div>
+                <div class="tiny">${highlightText(row.note || "无特殊备注", query)}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        return `
+          <article class="rule-card">
+            <button class="rule-toggle" type="button" data-action="toggle-rule" data-category="${category.categoryId}">
+              <div class="rule-title">
+                <span class="rule-swatch" style="background:${category.color};"></span>
+                <div class="rule-meta">
+                  <h3>${category.name}</h3>
+                  <p>${category.shortName}</p>
+                </div>
+              </div>
+              <span class="rule-count">${query ? `命中 ${matchedRows.length} 条` : `${category.rows.length} 条规则 ${isOpen ? "· 收起" : "· 展开"}`}</span>
+            </button>
+            ${isOpen ? `
+              <div class="rule-body">
+                ${category.intro ? `<div class="rule-intro">${category.intro}</div>` : ""}
+                ${rows}
+              </div>
+            ` : ""}
+          </article>
+        `;
+      }).join("");
+
+      document.getElementById("tab-rules").innerHTML = `
+        <div class="section-head">
+          <div>
+            <h2>拼读规则表</h2>
+            <p>这是 letter pattern → sound 的映射表，不是音标总览。先找字母组合，再找发音和例词，最后回到训练里调用它。</p>
+          </div>
+          <label class="search-box">
+            <span>搜索</span>
+            <input type="text" id="rule-search" placeholder="输入 igh / tion / ph ..." value="${escapeHtml(state.ruleSearch)}">
+          </label>
+        </div>
+        <div class="rule-help-strip">
+          <div class="rule-help-pill">点音标旁 🔊：播放这个音值的代表示范音</div>
+          <div class="rule-help-pill">点例词旁 🔊：播放完整单词发音</div>
+          <div class="rule-help-pill">搜索结果会自动展开命中分类，并只显示命中规则</div>
+        </div>
+        <div class="rules-grid">${content || `<div class="empty-state">没有找到和“${escapeHtml(state.ruleSearch)}”相关的规则。试试输入更短的字母组合，比如 <span class="mono">igh</span>、<span class="mono">tion</span>、<span class="mono">ph</span>。</div>`}</div>
+      `;
+
+      restoreRuleSearchFocus(preserveFocus, selectionStart, selectionEnd);
+    }
+
+    function renderPlan() {
+      document.getElementById("tab-plan").innerHTML = `
+        <div class="section-head">
+          <div>
+            <h2>每日练习计划</h2>
+            <p>目标不是“今天看了很多内容”，而是每天稳定走完一个 35 分钟闭环：学规则、辨音、解码、拼写、归因。照着做，比“看了很多方法”更有用。</p>
+          </div>
+          <div class="tag">35 分钟完整流程</div>
+        </div>
+        <section id="weekly-plan-callout" class="mini-panel" style="margin-bottom:16px;">
+          <h3>推荐周计划</h3>
+          <p>这部分是整个训练流程的周节奏导航，应该先看它来决定今天练哪一类规则，而不是把它当作工具推荐。</p>
+          <ul class="tool-list">
+            ${WEEKLY_PLAN.map((item) => `<li>${item}</li>`).join("")}
+          </ul>
+        </section>
+        <div class="plan-grid">
+          ${DAILY_PLAN.map((item, index) => `
+            <article class="plan-card">
+              <div class="plan-top">
+                <div class="step-badge">${item.step.replace("Step ", "")}</div>
+                <div class="level-chip">${item.duration}</div>
+              </div>
+              <h3>${item.title}</h3>
+              <p>${item.purpose}</p>
+              <ul class="plan-list">
+                ${item.actions.map((entry) => `<li>${entry}</li>`).join("")}
+              </ul>
+              ${index === 1 ? `
+                <section class="plan-subsection">
+                  <h3>Step 2 加练 · Minimal Pairs 清单</h3>
+                  <p>下面这些对照词属于第 2 步的训练材料，不是独立的新步骤。建议每次从中选 6-8 组来做。</p>
+                  <div class="pairs-stack">
+                    ${MINIMAL_PAIRS.map((group) => `
+                      <section class="mini-panel">
+                        <h3>${group.title}</h3>
+                        <ul class="feedback-list">
+                          ${group.items.map((pair) => `<li class="mono">${pair}</li>`).join("")}
+                        </ul>
+                      </section>
+                    `).join("")}
+                  </div>
+                </section>
+              ` : ""}
+            </article>
+          `).join("")}
+        </div>
+        <div class="tools-grid">
+          <section class="mini-panel">
+            <h3>推荐工具</h3>
+            <ul class="tool-list">
+              ${TOOL_RECOMMENDATIONS.map((item) => `<li>${item}</li>`).join("")}
+            </ul>
+          </section>
+        </div>
+      `;
+    }
+
+    function renderAnswerCard(item, session, isEncodeResult = false) {
+      const resultBadge = session.evaluated
+        ? `<div class="tag result-badge ${session.wrongItems.some((wrong) => wrong.word === item.word && wrong.source === (session.mode === "encode" ? "typed" : wrong.source)) && session.attempted ? "bad" : "good"}">${session.mode === "encode" ? (normalizeWord(session.inputValue) === normalizeWord(item.word) ? "✓ 拼写正确" : "✗ 正确拼写见下") : (session.wrongItems.some((wrong) => wrong.word === item.word && wrong.transcript === session.transcript) ? "✗ 这题记为错误" : "✓ 这题记为正确")}</div>`
+        : "";
+      return `
+        <article class="answer-card">
+          <div class="section-head" style="margin-bottom:0;">
+            <div>
+              <h3>答案与规则拆解</h3>
+              <p>${isEncodeResult ? "检查拼写之后，回头看它是怎么被规则支撑起来的。" : "答案不是终点，关键是把错误归因到规则。"} </p>
+            </div>
+            ${resultBadge}
+          </div>
+          <div class="answer-grid">
+            <div class="summary-card">
+              <h3 class="mono">${item.word}</h3>
+              <div class="ipa-display" style="font-size:34px;">${item.ipa}</div>
+              <div class="action-row" style="justify-content:flex-start;">
+                <button class="audio-btn" type="button" data-action="speak-word" data-word="${escapeHtml(item.word)}">🔊 播放发音</button>
+              </div>
+            </div>
+            <div class="summary-card">
+              <h3>提示与备注</h3>
+              <p>${item.hint}</p>
+              <p class="tiny">${item.notes || "本词没有额外备注。"}</p>
+            </div>
+          </div>
+          <div>
+            <div class="tiny" style="margin-bottom:8px;">涉及规则</div>
+            <div class="control-row">
+              ${item.rules_involved.map((rule) => `<span class="tag mono">${rule}</span>`).join("")}
+            </div>
+          </div>
+          <div>
+            <div class="tiny" style="margin-bottom:8px;">建议回看分类</div>
+            <div class="control-row">
+              ${item.categoryRefs.map((categoryName) => `
+                <span class="category-chip" style="border-color:${getCategoryColor(categoryName)}; box-shadow: 0 0 0 1px ${getCategoryColor(categoryName)}33 inset;">
+                  ${categoryName}
+                </span>
+              `).join("")}
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderSummary(session) {
+      const wrongCategoryStats = getWrongCategoryStats(session.wrongItems);
+      return `
+        <div class="section-head">
+          <div>
+            <h2>本轮练习反馈</h2>
+            <p>统计不是为了打分，而是为了发现你现在最该回去补的规则空洞。</p>
+          </div>
+          <button class="action-btn" type="button" data-action="restart-session">重新打乱再来一轮</button>
+        </div>
+        <div class="summary-grid">
+          <article class="summary-card">
+            <h3>正确率</h3>
+            <div class="summary-big">${getAccuracy(session)}%</div>
+            <p>正确 ${session.correct} / ${session.attempted || session.deck.length}，模式：${session.mode === "decode" ? "看词读音" : "看音标拼写"}，等级：Lv.${session.level}</p>
+          </article>
+          <article class="summary-card">
+            <h3>复习建议</h3>
+            ${wrongCategoryStats.length ? `
+              <p>你在以下规则上出错较多，建议先回 Tab 1 复习：</p>
+              <div class="control-row">
+                ${wrongCategoryStats.slice(0, 4).map(([categoryName, count]) => `
+                  <span class="category-chip" style="border-color:${getCategoryColor(categoryName)}; box-shadow: 0 0 0 1px ${getCategoryColor(categoryName)}33 inset;">
+                    ${categoryName} × ${count}
+                  </span>
+                `).join("")}
+              </div>
+            ` : `
+              <p>这一轮没有记录到错误，下一轮可以直接升难度，或者回到规则表主动抽查例外项。</p>
+            `}
+          </article>
+        </div>
+        <article class="feedback-card">
+          <h3>错词列表</h3>
+          ${session.wrongItems.length ? `
+            <div class="wrong-list">
+              ${session.wrongItems.map((item) => `
+                <div class="wrong-item">
+                  <div class="control-row">
+                    <span class="pattern-chip mono">${item.word}</span>
+                    <span class="sound-chip">${item.ipa}</span>
+                    <button class="audio-btn" type="button" data-action="speak-word" data-word="${escapeHtml(item.word)}">🔊</button>
+                  </div>
+                  <div class="tiny">${item.hint}</div>
+                  <div class="control-row">
+                    ${item.categoryRefs.map((categoryName) => `
+                      <span class="category-chip" style="border-color:${getCategoryColor(categoryName)}; box-shadow: 0 0 0 1px ${getCategoryColor(categoryName)}33 inset;">
+                        ${categoryName}
+                      </span>
+                    `).join("")}
+                  </div>
+                </div>
+              `).join("")}
+            </div>
+          ` : `
+            <p>这一轮没有错词记录。</p>
+          `}
+        </article>
+      `;
+    }
+
+    function renderTrainer() {
+      const session = ensureSession();
+      const item = getCurrentItem();
+      const micSupported = Boolean(SpeechRecognition);
+
+      if (session.completed) {
+        document.getElementById("tab-trainer").innerHTML = renderSummary(session);
+        return;
+      }
+
+      const progress = Math.round((session.index / session.deck.length) * 100);
+      const answerCard = session.answerVisible && item
+        ? renderAnswerCard(item, session, session.mode === "encode")
+        : "";
+
+      const leftPanel = session.mode === "decode"
+        ? `
+          <article class="trainer-card">
+            <div class="progress-shell">
+              <div class="progress-meta">
+                <span>第 ${session.index + 1} / ${session.deck.length} 题</span>
+                <span>当前正确率 ${getAccuracy(session)}%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;"></div></div>
+            </div>
+            <div class="prompt-card">
+              <div class="level-chip">看词读音 · Decode</div>
+              <div class="word-display">${item.word}</div>
+              <p class="trainer-subcopy">先自己大声读，再决定要不要看提示或答案。能用规则解释，就说明你不是在“猜”。</p>
+              ${session.revealHint ? `<div class="status-note">${item.hint}</div>` : ""}
+            </div>
+            <div class="action-row">
+              <button class="ghost-btn" type="button" data-action="toggle-hint">${session.revealHint ? "收起提示" : "提示"}</button>
+              <button class="ghost-btn" type="button" data-action="show-answer">显示答案</button>
+              ${micSupported ? `<button class="mic-btn ${session.listening ? "listening" : ""}" type="button" data-action="start-recognition">${session.listening ? "🎤 录音中..." : "🎤 语音识别"}</button>` : ""}
+              <button class="action-btn" type="button" data-action="decode-score" data-value="correct">我读对了</button>
+              <button class="ghost-btn" type="button" data-action="decode-score" data-value="wrong">没读对</button>
+            </div>
+            ${session.recognitionStatus ? `<div class="recognition-note ${session.recognitionTone}">${session.recognitionStatus}</div>` : ""}
+            ${session.answerVisible ? `<div class="status-note">先核对答案和规则归因，再进入下一题。</div>` : ""}
+            ${session.evaluated ? `<div class="action-row" style="justify-content:flex-start;"><button class="action-btn" type="button" data-action="next-question">下一题</button></div>` : ""}
+          </article>
+        `
+        : `
+          <article class="trainer-card">
+            <div class="progress-shell">
+              <div class="progress-meta">
+                <span>第 ${session.index + 1} / ${session.deck.length} 题</span>
+                <span>当前正确率 ${getAccuracy(session)}%</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${progress}%;"></div></div>
+            </div>
+            <div class="prompt-card">
+              <div class="level-chip">看音标拼写 · Encode</div>
+              <div class="ipa-display">${item.ipa}</div>
+              <div class="action-row">
+                <button class="audio-btn" type="button" data-action="speak-word" data-word="${escapeHtml(item.word)}">🔊 播放发音</button>
+              </div>
+              <p class="trainer-subcopy">先听、再分音节、再判断哪些元音和辅音组合最可能出现。拼写必须完全匹配才算对。</p>
+              ${session.revealHint ? `<div class="status-note">${item.hint}</div>` : ""}
+            </div>
+            <div class="input-shell">
+              <span>拼写</span>
+              <input id="encode-input" type="text" value="${escapeHtml(session.inputValue)}" placeholder="输入完整单词">
+            </div>
+            <div class="action-row">
+              <button class="ghost-btn" type="button" data-action="toggle-hint">${session.revealHint ? "收起提示" : "提示"}</button>
+              <button class="action-btn" type="button" data-action="check-encode">检查</button>
+              <button class="ghost-btn" type="button" data-action="show-answer-mark-wrong">显示答案</button>
+            </div>
+            ${session.evaluated ? `<div class="action-row" style="justify-content:flex-start;"><button class="action-btn" type="button" data-action="next-question">下一题</button></div>` : ""}
+          </article>
+        `;
+
+      document.getElementById("tab-trainer").innerHTML = `
+        <div class="section-head">
+          <div>
+            <h2>拼读训练</h2>
+            <p>训练区现在是完整闭环：提示、揭晓答案、计分、反馈都已串起来；浏览器支持的话，再用麦克风做额外加成。</p>
+          </div>
+          <div class="tag">${micSupported ? "SpeechRecognition 已检测到" : "SpeechRecognition 不可用，自动回退手动模式"}</div>
+        </div>
+        <div class="trainer-card" style="margin-bottom:16px;">
+          <div>
+            <div class="tiny" style="margin-bottom:8px;">模式</div>
+            <div class="control-row">
+              <button class="pill-btn ${state.trainer.mode === "decode" ? "active" : ""}" type="button" data-action="set-mode" data-mode="decode">看词读音</button>
+              <button class="pill-btn ${state.trainer.mode === "encode" ? "active" : ""}" type="button" data-action="set-mode" data-mode="encode">看音标拼写</button>
+            </div>
+          </div>
+          <div>
+            <div class="tiny" style="margin-bottom:8px;">难度</div>
+            <div class="control-row">
+              <button class="pill-btn ${state.trainer.level === 1 ? "active" : ""}" type="button" data-action="set-level" data-level="1">Lv.1 基础</button>
+              <button class="pill-btn ${state.trainer.level === 2 ? "active" : ""}" type="button" data-action="set-level" data-level="2">Lv.2 进阶</button>
+              <button class="pill-btn ${state.trainer.level === 3 ? "active" : ""}" type="button" data-action="set-level" data-level="3">Lv.3 挑战</button>
+              <button class="ghost-btn" type="button" data-action="restart-session">重新打乱</button>
+            </div>
+          </div>
+        </div>
+        <div class="trainer-layout">
+          <div>${leftPanel}</div>
+          <div>
+            ${answerCard || `
+              <article class="feedback-card">
+                <h3>答题提醒</h3>
+                <p>看到题目后先自己推理，再使用提示。真正的提升来自“先做判断，再核对”。</p>
+                <ul class="feedback-list">
+                  <li>Decode：先找元音，再看组合、前后缀和不发音字母。</li>
+                  <li>Encode：先按音节切分，再反推元音组合和辅音结构。</li>
+                  <li>如果一条规则反复错，就回 Tab 1 集中补那一类。</li>
+                </ul>
+                <div class="footer-note">提示：本页面优先播放预生成音频；如果某个资源缺失，再回退到浏览器语音。语音识别仍依赖浏览器支持和麦克风权限。</div>
+              </article>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTabButtons() {
+      document.querySelectorAll("[data-action='switch-tab']").forEach((button) => {
+        button.classList.toggle("active", button.dataset.tab === state.activeTab);
+      });
+      document.querySelectorAll(".panel").forEach((panel) => {
+        panel.classList.toggle("active", panel.id === `tab-${state.activeTab}`);
+      });
+    }
+
+    function render() {
+      renderTabButtons();
+      renderRules();
+      renderPlan();
+      renderTrainer();
+    }
+
+    document.addEventListener("click", (event) => {
+      const target = event.target.closest("[data-action]");
+      if (!target) return;
+      const { action } = target.dataset;
+
+      if (action === "switch-tab") {
+        state.activeTab = target.dataset.tab;
+        render();
+        return;
+      }
+
+      if (action === "toggle-rule") {
+        state.activeRuleCategory = state.activeRuleCategory === target.dataset.category
+          ? ""
+          : target.dataset.category;
+        render();
+        return;
+      }
+
+      if (action === "speak-word") {
+        playWordAudio(target.dataset.word);
+        return;
+      }
+
+      if (action === "speak-phoneme") {
+        playPhonemeAudio(target.dataset.sound, target.dataset.demo);
+        return;
+      }
+
+      if (action === "toggle-hint") {
+        const session = ensureSession();
+        session.revealHint = !session.revealHint;
+        render();
+        return;
+      }
+
+      if (action === "show-answer") {
+        revealCurrentAnswer(false);
+        return;
+      }
+
+      if (action === "show-answer-mark-wrong") {
+        revealCurrentAnswer(true);
+        return;
+      }
+
+      if (action === "decode-score") {
+        scoreCurrent(target.dataset.value === "correct", "manual");
+        return;
+      }
+
+      if (action === "next-question") {
+        goToNextQuestion();
+        return;
+      }
+
+      if (action === "set-mode") {
+        setMode(target.dataset.mode);
+        return;
+      }
+
+      if (action === "set-level") {
+        setLevel(Number(target.dataset.level));
+        return;
+      }
+
+      if (action === "restart-session") {
+        restartSession();
+        return;
+      }
+
+      if (action === "start-recognition") {
+        startRecognition();
+        return;
+      }
+
+      if (action === "check-encode") {
+        const session = ensureSession();
+        const item = getCurrentItem();
+        if (!item || session.evaluated) return;
+        const isCorrect = normalizeWord(session.inputValue) === normalizeWord(item.word);
+        scoreCurrent(isCorrect, "typed");
+      }
+    });
+
+    document.addEventListener("input", (event) => {
+      if (event.target.id === "rule-search") {
+        const shouldPreserveFocus = document.activeElement && document.activeElement.id === "rule-search";
+        const selectionStart = event.target.selectionStart;
+        const selectionEnd = event.target.selectionEnd;
+        state.ruleSearch = event.target.value;
+        renderRules({
+          preserveFocus: shouldPreserveFocus,
+          selectionStart,
+          selectionEnd
+        });
+        return;
+      }
+
+      if (event.target.id === "encode-input") {
+        const session = ensureSession();
+        session.inputValue = event.target.value;
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && event.target.id === "encode-input") {
+        event.preventDefault();
+        const session = ensureSession();
+        const item = getCurrentItem();
+        if (!item || session.evaluated) return;
+        const isCorrect = normalizeWord(session.inputValue) === normalizeWord(item.word);
+        scoreCurrent(isCorrect, "typed");
+      }
+    });
+
+    if (window.speechSynthesis) {
+      loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    ensureSession();
+    loadAudioManifest().finally(render);
+  </script>
+</body>
+</html>
